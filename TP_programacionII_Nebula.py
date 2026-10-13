@@ -21,9 +21,8 @@ dfPeliculas = dfPeliculas.drop(columns=["Unnamed: 0"])
 
 #Elimina fila con valores nulos
 dfPeliculas = dfPeliculas.dropna(
-    subset=["budget", "production_companies", "revenue", "runtime"],
-    how="all"
-)
+    subset=["budget", "production_companies", "revenue", "runtime"],#solo revisa estas columnas
+    how="all") #solo si todas las columnas son nulas
 #vuelve a acomodar los indices del dataframe luego de eliminar la fila corrumpida
 dfPeliculas = dfPeliculas.reset_index(drop=True)
 
@@ -35,10 +34,8 @@ dfPeliculas["budget"] = dfPeliculas["budget"].replace(0, float("nan"))
 dfPeliculas["revenue"] = dfPeliculas["revenue"].replace(0, float("nan"))
 
 #transforma los 0 de vote_average que no tienen votos en nulos
-dfPeliculas.loc[
-    dfPeliculas["vote_count"] == 0,
-    "vote_average"
-] = float("nan")
+dfPeliculas.loc[ #trabaja con una columna y fila especifica
+    dfPeliculas["vote_count"] == 0,"vote_average"] = float("nan")
 
 #convierte texto en una lista real en genres
 dfPeliculas["genres"] = dfPeliculas["genres"].apply(ast.literal_eval)
@@ -51,6 +48,8 @@ dfPeliculas["original_language"] = (
     dfPeliculas["original_language"]
     .replace("cn", "Cantonese")
 )
+
+
 """ANALISSIS DE DATOS"""
 
 #lista de diccionarios con peliculas. generos y valoraciones
@@ -72,13 +71,14 @@ dfGeneros = pd.DataFrame(listaGeneros)
 valoracionPorGenero = (
     dfGeneros
     .groupby("genre")["vote_average"] #junta todas las peliculas de un mismo genero
-    .agg(["mean", "count"]) #calcula la media y la cantidad de peliculas por genero
+    .agg(["mean", "count"]) #calcula la media y la cantidad de peliculas por genero simultaneamente con .agg
     .sort_values("mean", ascending=False) #ordena de mayor a menor el genero mejor valorado
 )
+
 #visualizacion de datos
-"""print()
+print()
 print("Valoración promedio por género:")
-print(valoracionPorGenero)"""
+print(valoracionPorGenero)
 
 
 """Que géneros presentan mayor popularidad"""
@@ -89,10 +89,12 @@ popularidadPorGenero = (
     .agg(["mean", "count"])
     .sort_values("mean", ascending=False)
 )
+
 #visualizacion de datos
-"""print()
+print()
 print("Popularidad promedio por género:")
-print(popularidadPorGenero)"""
+print(popularidadPorGenero)
+
 
 """Las peliculas mas populares son las mejor valoradas"""
 #50 peliculas mas populares
@@ -103,6 +105,7 @@ peliculasMasPopulares = (
     .sort_values("popularity", ascending=False)
     .head(50)
 )
+
 #50 peliculas mejor valoradas, (conmas de 100 votos)
 peliculasMejorValoradas = (
     dfPeliculas[
@@ -113,6 +116,7 @@ peliculasMejorValoradas = (
     .sort_values("vote_average", ascending=False)
     .head(50)
 )
+
 #compara las dos listas y devuelve las peliculas que aparecen en ambas
 titulosPopulares = peliculasMasPopulares["title"].tolist() #obtiene los títulos de las películas más populares
 titulosMejorValoradas = peliculasMejorValoradas["title"].tolist() #obtiene los títulos de las películas mejor valoradas
@@ -120,30 +124,37 @@ coincidencias = []
 for titulo in titulosPopulares:
     if titulo in titulosMejorValoradas:
         coincidencias.append(titulo)
+
 #visualizacion de datos
-"""print()
+print()
 print("Películas que aparecen en ambas listas:")
 print(coincidencias)
-print("Cantidad de coincidencias:", len(coincidencias))"""
+print("Cantidad de coincidencias:", len(coincidencias))
 
-"""que idiomas tienen mas presencia entre las peliculas mas populares"""
+
+"""Que idiomas presentan mayor popularidad promedio"""
+#lista de idiomas con su popularidad promedio y cantidad de peliculas por idioma
 popularidadPorIdioma = (
     dfPeliculas
     .groupby("original_language")["popularity"]
     .agg(["mean", "count"])
     .sort_values("mean", ascending=False)
 )
+
+#filtra los idiomas con al menos 100 peliculas
 popularidadPorIdiomaFiltrado = (
     popularidadPorIdioma[
         popularidadPorIdioma["count"] >= 100
     ]
 )
-#visualizacion de datos
-"""print()
-print("Popularidad promedio por idioma con al menos 100 películas:")
-print(popularidadPorIdiomaFiltrado)"""
 
-"""Que productoras tienen mas presencia entre las peliculas mas populares"""
+#visualizacion de datos
+print()
+print("Popularidad promedio por idioma con al menos 100 películas:")
+print(popularidadPorIdiomaFiltrado)
+
+
+"""Que productoras presentan mayor popularidad promedio"""
 #lista de diccionarios con peliculas, productoras y popularidad
 listaProductoras = []
 for i in range(len(dfPeliculas)):
@@ -163,6 +174,7 @@ popularidadPorProductora = (
     .agg(["mean", "count"])
     .sort_values("mean", ascending=False)
 )
+
 #filtra las productoras con al menos 100 peliculas
 popularidadPorProductoraFiltrado = (
     popularidadPorProductora[
@@ -170,16 +182,19 @@ popularidadPorProductoraFiltrado = (
     ]
     .sort_values("mean", ascending=False)
 )
+
 #visualizacion de datos
-"""print()
+print()
 print("Popularidad promedio por productora con al menos 100 películas:")
-print(popularidadPorProductoraFiltrado)"""
+print(popularidadPorProductoraFiltrado)
+
 
 """Las películas con presupuestos más altos reciben mejores valoraciones"""
 # Guarda únicamente películas que tengan presupuesto y valoración
 peliculasConPresupuesto = dfPeliculas.dropna(
     subset=["budget", "vote_average"])
 medianaPresupuesto = peliculasConPresupuesto["budget"].median() #Calcula la mediana del presupuesto
+
 # Películas con presupuesto menor a la mediana
 presupuestoBajo = peliculasConPresupuesto[peliculasConPresupuesto["budget"] < medianaPresupuesto]
 # Películas con presupuesto igual o mayor a la mediana
