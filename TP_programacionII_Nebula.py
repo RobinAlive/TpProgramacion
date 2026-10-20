@@ -1,7 +1,6 @@
 """TRABAJO PRACTICO 2 - PROGRAMACION II
     Integrantes:
         - 1. Camila vivo
-        - 2. Rebecca Carizo
 """
 import pandas as pd
 import ast #permite convertir un string con formato de lista en una lista real
@@ -26,13 +25,10 @@ dfPeliculas = dfPeliculas.dropna(
 #vuelve a acomodar los indices del dataframe luego de eliminar la fila corrumpida
 dfPeliculas = dfPeliculas.reset_index(drop=True)
 
-#Transforma los 0 en runtime en nulos
+#Transforma los 0 en runtime, budget y revenue en nulos
 dfPeliculas["runtime"] = dfPeliculas["runtime"].replace(0, float("nan"))
-
-#Transforma los 0 en budget y revenue en nulos
 dfPeliculas["budget"] = dfPeliculas["budget"].replace(0, float("nan"))
 dfPeliculas["revenue"] = dfPeliculas["revenue"].replace(0, float("nan"))
-
 #transforma los 0 de vote_average que no tienen votos en nulos
 dfPeliculas.loc[ #trabaja con una columna y fila especifica
     dfPeliculas["vote_count"] == 0,"vote_average"] = float("nan")
@@ -118,8 +114,8 @@ peliculasMejorValoradas = (
 )
 
 #compara las dos listas y devuelve las peliculas que aparecen en ambas
-titulosPopulares = peliculasMasPopulares["title"].tolist() #obtiene los títulos de las películas más populares
-titulosMejorValoradas = peliculasMejorValoradas["title"].tolist() #obtiene los títulos de las películas mejor valoradas
+titulosPopulares = peliculasMasPopulares["title"].tolist() #hace una lista con los títulos de las películas más populares
+titulosMejorValoradas = peliculasMejorValoradas["title"].tolist() #hace una lista con los títulos de las películas mejor valoradas
 coincidencias = []
 for titulo in titulosPopulares:
     if titulo in titulosMejorValoradas:
