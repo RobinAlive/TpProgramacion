@@ -415,7 +415,7 @@ for combinacion, porcentaje in top50Porcentaje:
         combinacion,":",porcentaje,"%","- Alto desempeño:",conteoCombinacionesAltoDesempeno[combinacion],"- Total:",conteoCombinacionesTotales[combinacion]
     )
 
-    
+
 """Qué combinaciones de género e idioma aparecen con mayor frecuencia entre las películas de alto desempeño"""
 #visualizacion de datos 
 print()
@@ -427,3 +427,28 @@ top50Cantidad = sorted(
 )[:50]
 for combinacion, cantidad in top50Cantidad:
     print(combinacion, ":", cantidad)
+
+
+"""La duración de una película se relaciona con su valoración"""
+#Peliculas que tengan duracion y valoracion
+peliculasConDuracion = dfPeliculas.dropna(
+    subset=["runtime", "vote_average"]
+)
+#Mediana de duracion
+medianaDuracion = peliculasConDuracion["runtime"].median()
+#Peliculas con duracion menor y mayor a la mediana
+duracionCorta = peliculasConDuracion[
+    peliculasConDuracion["runtime"] < medianaDuracion
+]
+duracionLarga = peliculasConDuracion[
+    peliculasConDuracion["runtime"] >= medianaDuracion
+]
+#valoracion promedio de peliculas con duracion corta y larga
+valoracionPromedioDuracionCorta = duracionCorta["vote_average"].mean()
+valoracionPromedioDuracionLarga = duracionLarga["vote_average"].mean()
+#visualizacion de datos
+print()
+print("Valoracion promedio de peliculas cortas:", valoracionPromedioDuracionCorta)
+print("Valoracion promedio de peliculas largas:", valoracionPromedioDuracionLarga)
+print("Cantidad de peliculas cortas:", len(duracionCorta))
+print("Cantidad de peliculas largas:", len(duracionLarga))
