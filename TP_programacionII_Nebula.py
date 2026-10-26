@@ -371,3 +371,59 @@ for productora, diferencia in sorted(
     reverse=True
 ):
     print(productora, ":", diferencia)
+
+"""Qué combinaciones de género e idioma tienen una mayor proporción de películas de alto desempeño"""
+# Conteo total de combinaciones de genero e idioma
+conteoCombinacionesTotales = {}
+for i in range(len(peliculasConBuenDesempeno)):
+    pelicula = peliculasConBuenDesempeno.iloc[i]
+    idioma = pelicula["original_language"]
+    for genero in pelicula["genres"]:
+        combinacion = genero + " - " + idioma
+        if combinacion in conteoCombinacionesTotales:
+            conteoCombinacionesTotales[combinacion] += 1
+        else:
+            conteoCombinacionesTotales[combinacion] = 1
+# Conteo de combinaciones de genero e idioma en peliculas de alto desempeño
+conteoCombinacionesAltoDesempeno = {}
+for i in range(len(peliculasAltoDesempeno)):
+    pelicula = peliculasAltoDesempeno.iloc[i]
+    idioma = pelicula["original_language"]
+    for genero in pelicula["genres"]:
+        combinacion = genero + " - " + idioma
+        if combinacion in conteoCombinacionesAltoDesempeno:
+            conteoCombinacionesAltoDesempeno[combinacion] += 1
+        else:
+            conteoCombinacionesAltoDesempeno[combinacion] = 1
+# Porcentaje de peliculas de alto desempeño por combinacion de genero e idioma
+porcentajeAltoDesempenoPorCombinacion = {}
+for combinacion in conteoCombinacionesTotales:
+    if conteoCombinacionesTotales[combinacion] >= 100:
+        if combinacion in conteoCombinacionesAltoDesempeno:
+            porcentajeAltoDesempenoPorCombinacion[combinacion] = round((conteoCombinacionesAltoDesempeno[combinacion]/ conteoCombinacionesTotales[combinacion]) * 100,2
+            )
+#visualizacion de datos
+print()
+print("Top 50 combinaciones con mayor porcentaje de alto desempeño:")
+top50Porcentaje = sorted(
+    porcentajeAltoDesempenoPorCombinacion.items(),
+    key=lambda x: x[1],
+    reverse=True
+)[:50]
+for combinacion, porcentaje in top50Porcentaje:
+    print(
+        combinacion,":",porcentaje,"%","- Alto desempeño:",conteoCombinacionesAltoDesempeno[combinacion],"- Total:",conteoCombinacionesTotales[combinacion]
+    )
+
+    
+"""Qué combinaciones de género e idioma aparecen con mayor frecuencia entre las películas de alto desempeño"""
+#visualizacion de datos 
+print()
+print("Top 50 combinaciones más frecuentes entre películas de alto desempeño:")
+top50Cantidad = sorted(
+    conteoCombinacionesAltoDesempeno.items(),
+    key=lambda x: x[1],
+    reverse=True
+)[:50]
+for combinacion, cantidad in top50Cantidad:
+    print(combinacion, ":", cantidad)
