@@ -5,185 +5,156 @@
 import pandas as pd
 import ast #permite convertir un string con formato de lista en una lista real
 
+""" FUNCIONES """
+def cargar_datos ():
+    #busca el dataset de peliculas y lo guarda en un dataframe y usa otro lector mas felixible para evitar errores de una fila mal formada  
+    dfPeliculas = pd.read_csv("data/top_1000_popular_movies_tmdb.csv",engine="python")  
+    return dfPeliculas
+
+def limpiar_datos(dfPeliculas):
+    #eliminamos fila corrupta
+    dfPeliculas = dfPeliculas.drop(index=226)
+
+    #Elimina columna innecesaria 
+    dfPeliculas = dfPeliculas.drop(columns=["Unnamed: 0"])
+
+    #Elimina fila con valores nulos
+    dfPeliculas = dfPeliculas.dropna(
+        subset=["budget", "production_companies", "revenue", "runtime"],#solo revisa estas columnas
+        how="all") #solo si todas las columnas son nulas
+
+    #vuelve a acomodar los indices del dataframe luego de eliminar la fila corrumpida
+    dfPeliculas = dfPeliculas.reset_index(drop=True)
+
+    #Transforma los 0 en runtime, budget y revenue en nulos
+    for columna in ["runtime", "budget", "revenue"]:
+        dfPeliculas[columna] = dfPeliculas[columna].replace(0, float("nan"))
+
+    #transforma los 0 de vote_average que no tienen votos en nulos
+    dfPeliculas.loc[ #trabaja con una columna y fila especifica
+        dfPeliculas["vote_count"] == 0,"vote_average"] = float("nan")
+
+    #convierte texto en una lista real en genres y en production_companies
+    for columna in ["genres", "production_companies"]:
+        dfPeliculas[columna] = dfPeliculas[columna].apply(ast.literal_eval)
+
+    #Remplaza dentro de idiomas cn por catones
+    dfPeliculas["original_language"] = (
+        dfPeliculas["original_language"]
+        .replace("cn", "Cantonese")
+    )
+    return dfPeliculas
+
+def crear_df_generos(dfPeliculas):
+    #lista de diccionarios con peliculas. generos y valoraciones
+    listaGeneros = []
+    for i in range(len(dfPeliculas)):
+        pelicula = dfPeliculas.iloc[i]
+        for genero in pelicula["genres"]:
+            listaGeneros.append({
+                "title": pelicula["title"],
+                "genre": genero,
+                "vote_average": pelicula["vote_average"],
+                "vote_count": pelicula["vote_count"],
+                "popularity": pelicula["popularity"]
+            })
+    dfGeneros = pd.DataFrame(listaGeneros)
+    return dfGeneros
+
+def analizar_por_categoria(df, columnaAgrupar, columnaAnalizar, minimoCantidad=0):
+    #lista de generos con su valoracion y popularidad promedio y cantidad de peliculas por genero
+    resultado = (
+        df
+        .groupby(columnaAgrupar)[columnaAnalizar] #junta todas las peliculas de una misma columna
+        .agg(["mean", "count"]) #calcula la media y la cantidad de peliculas por genero simultaneamente con .agg
+    )
+    resultado = resultado[resultado["count"] >= minimoCantidad] #filtra las columnas con al menos minimoCantidad de peliculas
+    resultado = resultado.sort_values("mean", ascending=False) #ordena de mayor a menor el genero 
+    return resultado
+
+def obtener_top_peliculas(dfPeliculas, columna, minimoVotos=0):
+#top 50 peliculas por columna, filtrando por minimo de votos
+    peliculas = dfPeliculas[
+        dfPeliculas["vote_count"] >= minimoVotos
+    ][
+        ["title", "popularity", "vote_average", "vote_count"]
+    ]
+    topPeliculas = (peliculas.sort_values(columna, ascending=False).head(50))["title"].tolist()
+    return topPeliculas
+
+def comparar_popularidad_valoracion(dfPeliculas):
+    #50 peliculas mas populares
+    titulosPopulares = obtener_top_peliculas(dfPeliculas, "popularity")
+    #50 peliculas mejor valoradas, (conmas de 100 votos)
+    titulosMejorValoradas = obtener_top_peliculas(dfPeliculas, "vote_average", 100)
+    coincidencias = []
+    for titulo in titulosPopulares:
+        if titulo in titulosMejorValoradas:
+            coincidencias.append(titulo)
+    return coincidencias
+
+def crear_df_productoras(dfPeliculas):
+    #lista de diccionarios con peliculas, productoras y popularidad
+    listaProductoras = []
+    for i in range(len(dfPeliculas)):
+        pelicula = dfPeliculas.iloc[i]
+        for productora in pelicula["production_companies"]:
+            listaProductoras.append({
+                "title": pelicula["title"],
+                "production_company": productora,
+                "popularity": pelicula["popularity"]
+            })
+    dfProductoras = pd.DataFrame(listaProductoras)
+    return dfProductoras
+
 """IMPORTACION DE DATASET DE PELICULAS"""
-#busca el dataset de peliculas y lo guarda en un dataframe y usa otro lector mas felixible para evitar errores de una fila mal formada  
-dfPeliculas = pd.read_csv("data/top_1000_popular_movies_tmdb.csv",engine="python")
+dfPeliculas = cargar_datos()
 
-"""LIMPIEZA DE DATOS"""
-#eliminamos fila corrupta
-dfPeliculas = dfPeliculas.drop(index=226)
-#vuelve a acomodar los indices del dataframe luego de eliminar la fila corrumpida
-dfPeliculas = dfPeliculas.reset_index(drop=True)
+"""LIMPIEZA DE DATOS""" 
+dfPeliculas = limpiar_datos(dfPeliculas)
 
-#Elimina columna innecesaria 
-dfPeliculas = dfPeliculas.drop(columns=["Unnamed: 0"])
-
-#Elimina fila con valores nulos
-dfPeliculas = dfPeliculas.dropna(
-    subset=["budget", "production_companies", "revenue", "runtime"],#solo revisa estas columnas
-    how="all") #solo si todas las columnas son nulas
-#vuelve a acomodar los indices del dataframe luego de eliminar la fila corrumpida
-dfPeliculas = dfPeliculas.reset_index(drop=True)
-
-#Transforma los 0 en runtime, budget y revenue en nulos
-dfPeliculas["runtime"] = dfPeliculas["runtime"].replace(0, float("nan"))
-dfPeliculas["budget"] = dfPeliculas["budget"].replace(0, float("nan"))
-dfPeliculas["revenue"] = dfPeliculas["revenue"].replace(0, float("nan"))
-#transforma los 0 de vote_average que no tienen votos en nulos
-dfPeliculas.loc[ #trabaja con una columna y fila especifica
-    dfPeliculas["vote_count"] == 0,"vote_average"] = float("nan")
-
-#convierte texto en una lista real en genres
-dfPeliculas["genres"] = dfPeliculas["genres"].apply(ast.literal_eval)
-
-#convierte texto en una lista real en production_companies
-dfPeliculas["production_companies"] = dfPeliculas["production_companies"].apply(ast.literal_eval)
-
-#Remplaza dentro de idiomas cn por catones
-dfPeliculas["original_language"] = (
-    dfPeliculas["original_language"]
-    .replace("cn", "Cantonese")
-)
-
-
-"""ANALISSIS DE DATOS"""
-
-#lista de diccionarios con peliculas. generos y valoraciones
-listaGeneros = []
-for i in range(len(dfPeliculas)):
-    pelicula = dfPeliculas.iloc[i]
-    for genero in pelicula["genres"]:
-        listaGeneros.append({
-            "title": pelicula["title"],
-            "genre": genero,
-            "vote_average": pelicula["vote_average"],
-            "vote_count": pelicula["vote_count"],
-            "popularity": pelicula["popularity"]
-        })
-dfGeneros = pd.DataFrame(listaGeneros)
+"""ANALISSIS DE DATOS""" 
+dfGeneros = crear_df_generos(dfPeliculas)
 
 """Que generos reciben mejora valoraciones"""
-#lista de generos con su valoracion promedio y cantidad de peliculas por genero
-valoracionPorGenero = (
-    dfGeneros
-    .groupby("genre")["vote_average"] #junta todas las peliculas de un mismo genero
-    .agg(["mean", "count"]) #calcula la media y la cantidad de peliculas por genero simultaneamente con .agg
-    .sort_values("mean", ascending=False) #ordena de mayor a menor el genero mejor valorado
-)
-
+valoracionPorGenero = analizar_por_categoria(dfGeneros, "genre", "vote_average")
 #visualizacion de datos
 print()
 print("Valoración promedio por género:")
 print(valoracionPorGenero)
 
-
 """Que géneros presentan mayor popularidad"""
 #lista de generos con su popularidad promedio y cantidad de peliculas por genero
-popularidadPorGenero = (
-    dfGeneros
-    .groupby("genre")["popularity"]
-    .agg(["mean", "count"])
-    .sort_values("mean", ascending=False)
-)
-
+popularidadPorGenero = analizar_por_categoria(dfGeneros, "genre", "popularity")
 #visualizacion de datos
 print()
 print("Popularidad promedio por género:")
 print(popularidadPorGenero)
 
-
 """Las peliculas mas populares son las mejor valoradas"""
-#50 peliculas mas populares
-peliculasMasPopulares = (
-    dfPeliculas[
-        ["title", "popularity", "vote_average", "vote_count"]
-    ]
-    .sort_values("popularity", ascending=False)
-    .head(50)
-)
-
-#50 peliculas mejor valoradas, (conmas de 100 votos)
-peliculasMejorValoradas = (
-    dfPeliculas[
-        dfPeliculas["vote_count"] >= 100
-    ][
-        ["title", "popularity", "vote_average", "vote_count"]
-    ]
-    .sort_values("vote_average", ascending=False)
-    .head(50)
-)
-
-#compara las dos listas y devuelve las peliculas que aparecen en ambas
-titulosPopulares = peliculasMasPopulares["title"].tolist() #hace una lista con los títulos de las películas más populares
-titulosMejorValoradas = peliculasMejorValoradas["title"].tolist() #hace una lista con los títulos de las películas mejor valoradas
-coincidencias = []
-for titulo in titulosPopulares:
-    if titulo in titulosMejorValoradas:
-        coincidencias.append(titulo)
-
+coincidencias=comparar_popularidad_valoracion(dfPeliculas)
 #visualizacion de datos
 print()
 print("Películas que aparecen en ambas listas:")
 print(coincidencias)
 print("Cantidad de coincidencias:", len(coincidencias))
 
-
 """Que idiomas presentan mayor popularidad promedio"""
 #lista de idiomas con su popularidad promedio y cantidad de peliculas por idioma
-popularidadPorIdioma = (
-    dfPeliculas
-    .groupby("original_language")["popularity"]
-    .agg(["mean", "count"])
-    .sort_values("mean", ascending=False)
-)
-
-#filtra los idiomas con al menos 100 peliculas
-popularidadPorIdiomaFiltrado = (
-    popularidadPorIdioma[
-        popularidadPorIdioma["count"] >= 100
-    ]
-)
-
+popularidadPorIdioma = analizar_por_categoria(dfPeliculas, "original_language", "popularity",100)
 #visualizacion de datos
 print()
 print("Popularidad promedio por idioma con al menos 100 películas:")
-print(popularidadPorIdiomaFiltrado)
-
+print(popularidadPorIdioma)
 
 """Que productoras presentan mayor popularidad promedio"""
-#lista de diccionarios con peliculas, productoras y popularidad
-listaProductoras = []
-for i in range(len(dfPeliculas)):
-    pelicula = dfPeliculas.iloc[i]
-    for productora in pelicula["production_companies"]:
-        listaProductoras.append({
-            "title": pelicula["title"],
-            "production_company": productora,
-            "popularity": pelicula["popularity"]
-        })
-dfProductoras = pd.DataFrame(listaProductoras)
-
+dfProductoras = crear_df_productoras(dfPeliculas)
 #calcula popularidad promedio por productora
-popularidadPorProductora = (
-    dfProductoras
-    .groupby("production_company")["popularity"]
-    .agg(["mean", "count"])
-    .sort_values("mean", ascending=False)
-)
-
-#filtra las productoras con al menos 100 peliculas
-popularidadPorProductoraFiltrado = (
-    popularidadPorProductora[
-        popularidadPorProductora["count"] >= 100
-    ]
-    .sort_values("mean", ascending=False)
-)
-
+popularidadPorProductora = analizar_por_categoria(dfProductoras, "production_company", "popularity",100)
 #visualizacion de datos
 print()
 print("Popularidad promedio por productora con al menos 100 películas:")
-print(popularidadPorProductoraFiltrado)
-
+print(popularidadPorProductora)
 
 """Las películas con presupuestos más altos reciben mejores valoraciones"""
 # Guarda únicamente películas que tengan presupuesto y valoración
