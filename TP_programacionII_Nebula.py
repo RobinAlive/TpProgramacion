@@ -107,319 +107,242 @@ def crear_df_productoras(dfPeliculas):
     dfProductoras = pd.DataFrame(listaProductoras)
     return dfProductoras
 
-"""IMPORTACION DE DATASET DE PELICULAS"""
-dfPeliculas = cargar_datos()
-
-"""LIMPIEZA DE DATOS""" 
-dfPeliculas = limpiar_datos(dfPeliculas)
-
-"""ANALISSIS DE DATOS""" 
-dfGeneros = crear_df_generos(dfPeliculas)
-
-"""Que generos reciben mejora valoraciones"""
-valoracionPorGenero = analizar_por_categoria(dfGeneros, "genre", "vote_average")
-#visualizacion de datos
-print()
-print("Valoración promedio por género:")
-print(valoracionPorGenero)
-
-"""Que géneros presentan mayor popularidad"""
-#lista de generos con su popularidad promedio y cantidad de peliculas por genero
-popularidadPorGenero = analizar_por_categoria(dfGeneros, "genre", "popularity")
-#visualizacion de datos
-print()
-print("Popularidad promedio por género:")
-print(popularidadPorGenero)
-
-"""Las peliculas mas populares son las mejor valoradas"""
-coincidencias=comparar_popularidad_valoracion(dfPeliculas)
-#visualizacion de datos
-print()
-print("Películas que aparecen en ambas listas:")
-print(coincidencias)
-print("Cantidad de coincidencias:", len(coincidencias))
-
-"""Que idiomas presentan mayor popularidad promedio"""
-#lista de idiomas con su popularidad promedio y cantidad de peliculas por idioma
-popularidadPorIdioma = analizar_por_categoria(dfPeliculas, "original_language", "popularity",100)
-#visualizacion de datos
-print()
-print("Popularidad promedio por idioma con al menos 100 películas:")
-print(popularidadPorIdioma)
-
-"""Que productoras presentan mayor popularidad promedio"""
-dfProductoras = crear_df_productoras(dfPeliculas)
-#calcula popularidad promedio por productora
-popularidadPorProductora = analizar_por_categoria(dfProductoras, "production_company", "popularity",100)
-#visualizacion de datos
-print()
-print("Popularidad promedio por productora con al menos 100 películas:")
-print(popularidadPorProductora)
-
-"""Las películas con presupuestos más altos reciben mejores valoraciones"""
-# Guarda únicamente películas que tengan presupuesto y valoración
-peliculasConPresupuesto = dfPeliculas.dropna(
-    subset=["budget", "vote_average"])
-medianaPresupuesto = peliculasConPresupuesto["budget"].median() #Calcula la mediana del presupuesto
-
-# Películas con presupuesto menor a la mediana
-presupuestoBajo = peliculasConPresupuesto[peliculasConPresupuesto["budget"] < medianaPresupuesto]
-# Películas con presupuesto igual o mayor a la mediana
-presupuestoAlto = peliculasConPresupuesto[peliculasConPresupuesto["budget"] >= medianaPresupuesto]
-
-#visualizacion de datos
-print()
-print("Mediana del presupuesto:", medianaPresupuesto)
-#valoracion promedio de peliculas con presupuesto bajo
-print(
-    "Valoración promedio - presupuesto bajo:",
-    presupuestoBajo["vote_average"].mean()
-)
-#valoracion promedio de peliculas con presupuesto alto
-print(
-    "Valoración promedio - presupuesto alto:",
-    presupuestoAlto["vote_average"].mean()
-)
-#cantidad de peliculas con presupuesto bajo y alto
-print("Cantidad presupuesto bajo:", len(presupuestoBajo))
-print("Cantidad presupuesto alto:", len(presupuestoAlto))
-
-"""Qué características tienen las películas que combinan alta popularidad y alta valoración"""
-#datafrane con unicamente peliculas que tengan popularidad y valoracion
-peliculasConBuenDesempeno = dfPeliculas.dropna(
-    subset=["popularity", "vote_average"]
-)
-#calcula la mediana de popularidad y valoracion
-medianaPopularidad = peliculasConBuenDesempeno["popularity"].median()
-medianaValoracion = peliculasConBuenDesempeno["vote_average"].median()
-#filtra las peliculas que tengan popularidad y valoracion mayor o igual a la mediana
-peliculasAltoDesempeno = peliculasConBuenDesempeno[
-    (peliculasConBuenDesempeno["popularity"] >= medianaPopularidad) & (peliculasConBuenDesempeno["vote_average"] >= medianaValoracion)
-]
-#lista de generos de peliculas con alto desempeño
-listaGenerosAltoDesempeno = []
-for i in range(len(peliculasAltoDesempeno)):
-    pelicula = peliculasAltoDesempeno.iloc[i]
-    for genero in pelicula["genres"]:
-        listaGenerosAltoDesempeno.append(genero)
-#conteo de generos de peliculas con alto desempeño
-conteoGeneros = {}
-for genero in listaGenerosAltoDesempeno:
-    if genero in conteoGeneros:
-        conteoGeneros[genero] += 1
-    else:
-        conteoGeneros[genero] = 1
-#determina el porcentaje de peliculas de alto desempeño por genero
-porcentajeGeneros = {}
-for genero in conteoGeneros:
-    porcentajeGeneros[genero] = round((conteoGeneros[genero] / len(peliculasAltoDesempeno)) * 100, 2
+def comparar_por_mediana(dfPeliculas, columnaDividir, columnaAnalizar):
+    # elimina las peliculas que no tengan datos en las columnas necesarias
+    peliculasConDatos = dfPeliculas.dropna(
+        subset=[columnaDividir, columnaAnalizar]
     )
-#lista de generos de todas las peliculas con popularidad y valoracion
-listaGenerosTotales = []
-for i in range(len(peliculasConBuenDesempeno)):
-    pelicula = peliculasConBuenDesempeno.iloc[i]
-    for genero in pelicula["genres"]:
-        listaGenerosTotales.append(genero)
-#conteo de generos de todas las peliculas con popularidad y valoracion
-conteoGenerosTotales = {}
-for genero in listaGenerosTotales:
-    if genero in conteoGenerosTotales:
-        conteoGenerosTotales[genero] += 1
-    else:
-        conteoGenerosTotales[genero] = 1
-#determina el porcentaje de peliculas de todas las peliculas con popularidad y valoracion por genero
-porcentajeGenerosTotales = {}
-for genero in conteoGenerosTotales:
-    porcentajeGenerosTotales[genero] = round((conteoGenerosTotales[genero] / len(peliculasConBuenDesempeno)) * 100, 2
-    )
-#diferencia de presencia por genero entre peliculas con alto desempeño y todas las peliculas con popularidad y valoracion
-diferenciaGeneros = {}
-for genero in porcentajeGeneros:
-    diferenciaGeneros[genero] = round(porcentajeGeneros[genero] - porcentajeGenerosTotales[genero],2
-    )
+    # calcula la mediana de la columna utilizada para dividir
+    mediana = peliculasConDatos[columnaDividir].median()
+    # divide las peliculas en dos grupos
+    grupoBajo = peliculasConDatos[peliculasConDatos[columnaDividir] < mediana]
+    grupoAlto = peliculasConDatos[peliculasConDatos[columnaDividir] >= mediana]
+    # calcula el promedio de la columna a analizar
+    promedioBajo = grupoBajo[columnaAnalizar].mean()
+    promedioAlto = grupoAlto[columnaAnalizar].mean()
+    return mediana, promedioBajo, promedioAlto, len(grupoBajo), len(grupoAlto)
 
-#diccionario con idiomas de peliculas con alto desempeño y su cantidad
-conteoIdiomasAltoDesempeno = {}
-for i in range(len(peliculasAltoDesempeno)):
-    pelicula = peliculasAltoDesempeno.iloc[i]
-    idioma = pelicula["original_language"]
-    if idioma in conteoIdiomasAltoDesempeno:
-        conteoIdiomasAltoDesempeno[idioma] += 1
-    else:
-        conteoIdiomasAltoDesempeno[idioma] = 1
-#determina el porcentaje de peliculas de alto desempeño por idioma
-porcentajeIdiomasAltoDesempeno = {}
-for idioma in conteoIdiomasAltoDesempeno:
-    porcentajeIdiomasAltoDesempeno[idioma] = round((conteoIdiomasAltoDesempeno[idioma] / len(peliculasAltoDesempeno)) * 100,2
+def obtener_alto_desempeno(dfPeliculas):
+    # elimina peliculas sin popularidad o valoracion
+    peliculasConBuenDesempeno = dfPeliculas.dropna(
+        subset=["popularity", "vote_average"]
     )
-#diccionario con idiomas de todas las peliculas con popularidad y valoracion y su cantidad
-conteoIdiomasTotales = {}
-for i in range(len(peliculasConBuenDesempeno)):
-    pelicula = peliculasConBuenDesempeno.iloc[i]
-    idioma = pelicula["original_language"]
-    if idioma in conteoIdiomasTotales:
-        conteoIdiomasTotales[idioma] += 1
-    else:
-        conteoIdiomasTotales[idioma] = 1
-#determina el porcentaje de peliculas de todas las peliculas con popularidad y valoracion por idioma
-porcentajeIdiomasTotales = {}
-for idioma in conteoIdiomasTotales:
-    porcentajeIdiomasTotales[idioma] = round(
-        (conteoIdiomasTotales[idioma] / len(peliculasConBuenDesempeno)) * 100,
-        2
-    )
-#diferencia de presencia por idioma entre peliculas con alto desempeño y todas las peliculas con popularidad y valoracion
-diferenciaIdiomas = {}
-for idioma in porcentajeIdiomasAltoDesempeno:
-    if conteoIdiomasTotales[idioma] >= 100:
-        diferenciaIdiomas[idioma] = round(porcentajeIdiomasAltoDesempeno[idioma] - porcentajeIdiomasTotales[idioma],2
-        )
+    # calcula las medianas
+    medianaPopularidad = peliculasConBuenDesempeno["popularity"].median()
+    medianaValoracion = peliculasConBuenDesempeno["vote_average"].median()
+    # selecciona peliculas que superan ambas medianas
+    peliculasAltoDesempeno = peliculasConBuenDesempeno[
+        (peliculasConBuenDesempeno["popularity"] >= medianaPopularidad) &
+        (peliculasConBuenDesempeno["vote_average"] >= medianaValoracion)
+    ]
+    return peliculasConBuenDesempeno, peliculasAltoDesempeno, medianaPopularidad, medianaValoracion
 
-conteoProductorasAltoDesempeno = {}
+def comparar_categorias_lista(peliculasGenerales, peliculasAltoDesempeno, columnaLista, minimoCantidad=0):
+    conteoGeneral = {}
+    conteoAlto = {}
+    # cuenta las categorias en todas las peliculas
+    for i in range(len(peliculasGenerales)):
+        pelicula = peliculasGenerales.iloc[i]
+        for categoria in pelicula[columnaLista]:
+            if categoria in conteoGeneral:
+                conteoGeneral[categoria] += 1
+            else:
+                conteoGeneral[categoria] = 1
+    # cuenta las categorias en las peliculas de alto desempeño
+    for i in range(len(peliculasAltoDesempeno)):
+        pelicula = peliculasAltoDesempeno.iloc[i]
+        for categoria in pelicula[columnaLista]:
+            if categoria in conteoAlto:
+                conteoAlto[categoria] += 1
+            else:
+                conteoAlto[categoria] = 1
+    # calcula la diferencia de presencia por categoria
+    diferencias = {}
+    for categoria in conteoGeneral:
+        if conteoGeneral[categoria] >= minimoCantidad: #solo considera categorias con al menos minimoCantidad de peliculas
+            porcentajeGeneral = (conteoGeneral[categoria] / len(peliculasGenerales)) * 100
+            porcentajeAlto = (conteoAlto.get(categoria, 0) / len(peliculasAltoDesempeno)) * 100
+            diferencias[categoria] = round(porcentajeAlto - porcentajeGeneral,2) # diferencia de porcentajes
+    return diferencias
 
-# Conteo de productoras de peliculas con alto desempeño
-for i in range(len(peliculasAltoDesempeno)):
-    pelicula = peliculasAltoDesempeno.iloc[i]
-    for productora in pelicula["production_companies"]:
-        if productora in conteoProductorasAltoDesempeno:
-            conteoProductorasAltoDesempeno[productora] += 1
+def comparar_categorias_simples(peliculasGenerales, peliculasAltoDesempeno, columna, minimoCantidad=0):
+    conteoGeneral = {}
+    conteoAlto = {}
+    # cuenta categorias en todas las peliculas
+    for i in range(len(peliculasGenerales)):
+        pelicula = peliculasGenerales.iloc[i]
+        categoria = pelicula[columna]
+        if categoria in conteoGeneral:
+            conteoGeneral[categoria] += 1
         else:
-            conteoProductorasAltoDesempeno[productora] = 1
-# Determina el porcentaje de peliculas de alto desempeño por productora
-porcentajeProductorasAltoDesempeno = {}
-for productora in conteoProductorasAltoDesempeno:
-    porcentajeProductorasAltoDesempeno[productora] = round((conteoProductorasAltoDesempeno[productora] / len(peliculasAltoDesempeno)) * 100,2
-    )
-# Diccionario con productoras de todas las peliculas con popularidad y valoracion y su cantidad
-conteoProductorasTotales = {}
-for i in range(len(peliculasConBuenDesempeno)):
-    pelicula = peliculasConBuenDesempeno.iloc[i]
-    for productora in pelicula["production_companies"]:
-        if productora in conteoProductorasTotales:
-            conteoProductorasTotales[productora] += 1
+            conteoGeneral[categoria] = 1
+    # cuenta categorias en peliculas de alto desempeño
+    for i in range(len(peliculasAltoDesempeno)):
+        pelicula = peliculasAltoDesempeno.iloc[i]
+        categoria = pelicula[columna]
+        if categoria in conteoAlto:
+            conteoAlto[categoria] += 1
         else:
-            conteoProductorasTotales[productora] = 1
-# Determina el porcentaje de peliculas de todas las peliculas con popularidad y valoracion por productora
-porcentajeProductorasTotales = {}
-for productora in conteoProductorasTotales:
-    porcentajeProductorasTotales[productora] = round((conteoProductorasTotales[productora] / len(peliculasConBuenDesempeno)) * 100,2
-    )
-# Diferencia de presencia por productora entre peliculas con alto desempeño y todas las peliculas con popularidad y valoracion
-diferenciaProductoras = {}
-for productora in porcentajeProductorasAltoDesempeno:
-    if conteoProductorasTotales[productora] >= 100:
-        diferenciaProductoras[productora] = round(porcentajeProductorasAltoDesempeno[productora] - porcentajeProductorasTotales[productora],2
-        )
-# Visualización de datos
-print()
-print("Películas con alto desempeño:", len(peliculasAltoDesempeno))
-print("Mediana de popularidad:", medianaPopularidad)
-print("Mediana de valoración:", medianaValoracion)
-#dif por genero
-print()
-print("Diferencia de presencia por género:")
-for genero, diferencia in sorted(
-    diferenciaGeneros.items(),
-    key=lambda x: x[1],
-    reverse=True
-):
-    print(genero, ":", diferencia)
-#dif por idioma
-print()
-print("Diferencia de presencia por idioma:")
-for idioma, diferencia in sorted(
-    diferenciaIdiomas.items(),
-    key=lambda x: x[1],
-    reverse=True
-):
-    print(idioma, ":", diferencia)
-#dif por productora
-print()
-print("Diferencia de presencia por productora:")
-for productora, diferencia in sorted(
-    diferenciaProductoras.items(),
-    key=lambda x: x[1],
-    reverse=True
-):
-    print(productora, ":", diferencia)
+            conteoAlto[categoria] = 1
+    # calcula diferencia de presencia
+    diferencias = {}
+    for categoria in conteoGeneral:
+        if conteoGeneral[categoria] >= minimoCantidad:
+            porcentajeGeneral = (conteoGeneral[categoria] /len(peliculasGenerales)) * 100
+            porcentajeAlto = (conteoAlto.get(categoria, 0) /len(peliculasAltoDesempeno)) * 100
+            diferencias[categoria] = round(porcentajeAlto - porcentajeGeneral,2)
+    return diferencias
 
-"""Qué combinaciones de género e idioma tienen una mayor proporción de películas de alto desempeño"""
-# Conteo total de combinaciones de genero e idioma
-conteoCombinacionesTotales = {}
-for i in range(len(peliculasConBuenDesempeno)):
-    pelicula = peliculasConBuenDesempeno.iloc[i]
-    idioma = pelicula["original_language"]
-    for genero in pelicula["genres"]:
-        combinacion = genero + " - " + idioma
-        if combinacion in conteoCombinacionesTotales:
-            conteoCombinacionesTotales[combinacion] += 1
-        else:
-            conteoCombinacionesTotales[combinacion] = 1
-# Conteo de combinaciones de genero e idioma en peliculas de alto desempeño
-conteoCombinacionesAltoDesempeno = {}
-for i in range(len(peliculasAltoDesempeno)):
-    pelicula = peliculasAltoDesempeno.iloc[i]
-    idioma = pelicula["original_language"]
-    for genero in pelicula["genres"]:
-        combinacion = genero + " - " + idioma
-        if combinacion in conteoCombinacionesAltoDesempeno:
-            conteoCombinacionesAltoDesempeno[combinacion] += 1
-        else:
-            conteoCombinacionesAltoDesempeno[combinacion] = 1
-# Porcentaje de peliculas de alto desempeño por combinacion de genero e idioma
-porcentajeAltoDesempenoPorCombinacion = {}
-for combinacion in conteoCombinacionesTotales:
-    if conteoCombinacionesTotales[combinacion] >= 100:
-        if combinacion in conteoCombinacionesAltoDesempeno:
-            porcentajeAltoDesempenoPorCombinacion[combinacion] = round((conteoCombinacionesAltoDesempeno[combinacion]/ conteoCombinacionesTotales[combinacion]) * 100,2
-            )
-#visualizacion de datos
-print()
-print("Top 50 combinaciones con mayor porcentaje de alto desempeño:")
-top50Porcentaje = sorted(
-    porcentajeAltoDesempenoPorCombinacion.items(),
-    key=lambda x: x[1],
-    reverse=True
-)[:50]
-for combinacion, porcentaje in top50Porcentaje:
-    print(
-        combinacion,":",porcentaje,"%","- Alto desempeño:",conteoCombinacionesAltoDesempeno[combinacion],"- Total:",conteoCombinacionesTotales[combinacion]
-    )
+def mostrar_diferencias(diccionario):
+    for categoria, diferencia in sorted(
+        diccionario.items(), #ordena el diccionario por valor
+        key=lambda x: x[1], #ordena por el valor de la diferencia
+        reverse=True #ordena de mayor a menor
+    ):
+        print(categoria, ":", diferencia)
 
+def contar_combinaciones_genero_idioma(peliculas):
+    conteoCombinaciones = {}
+    for i in range(len(peliculas)):
+        pelicula = peliculas.iloc[i]
+        idioma = pelicula["original_language"]
+        for genero in pelicula["genres"]:
+            combinacion = genero + " - " + idioma
+            if combinacion in conteoCombinaciones:
+                conteoCombinaciones[combinacion] += 1
+            else:
+                conteoCombinaciones[combinacion] = 1
+    return conteoCombinaciones
 
-"""Qué combinaciones de género e idioma aparecen con mayor frecuencia entre las películas de alto desempeño"""
-#visualizacion de datos 
-print()
-print("Top 50 combinaciones más frecuentes entre películas de alto desempeño:")
-top50Cantidad = sorted(
-    conteoCombinacionesAltoDesempeno.items(),
-    key=lambda x: x[1],
-    reverse=True
-)[:50]
-for combinacion, cantidad in top50Cantidad:
-    print(combinacion, ":", cantidad)
+def calcular_porcentaje_alto_desempeno(conteoTotales,conteoAltoDesempeno,minimoCantidad=100):
+    porcentajes = {}
+    for combinacion in conteoTotales:
+        if conteoTotales[combinacion] >= minimoCantidad:
+            if combinacion in conteoAltoDesempeno:
+                porcentajes[combinacion] = round((conteoAltoDesempeno[combinacion] /conteoTotales[combinacion]) * 100,2)
+    return porcentajes
 
+def main():
+    """IMPORTACION DE DATASET DE PELICULAS"""
+    dfPeliculas = cargar_datos()
 
-"""La duración de una película se relaciona con su valoración"""
-#Peliculas que tengan duracion y valoracion
-peliculasConDuracion = dfPeliculas.dropna(
-    subset=["runtime", "vote_average"]
-)
-#Mediana de duracion
-medianaDuracion = peliculasConDuracion["runtime"].median()
-#Peliculas con duracion menor y mayor a la mediana
-duracionCorta = peliculasConDuracion[
-    peliculasConDuracion["runtime"] < medianaDuracion
-]
-duracionLarga = peliculasConDuracion[
-    peliculasConDuracion["runtime"] >= medianaDuracion
-]
-#valoracion promedio de peliculas con duracion corta y larga
-valoracionPromedioDuracionCorta = duracionCorta["vote_average"].mean()
-valoracionPromedioDuracionLarga = duracionLarga["vote_average"].mean()
-#visualizacion de datos
-print()
-print("Valoracion promedio de peliculas cortas:", valoracionPromedioDuracionCorta)
-print("Valoracion promedio de peliculas largas:", valoracionPromedioDuracionLarga)
-print("Cantidad de peliculas cortas:", len(duracionCorta))
-print("Cantidad de peliculas largas:", len(duracionLarga))
+    """LIMPIEZA DE DATOS""" 
+    dfPeliculas = limpiar_datos(dfPeliculas)
+
+    """ANALISSIS DE DATOS""" 
+    dfGeneros = crear_df_generos(dfPeliculas)
+
+    """Que generos reciben mejora valoraciones"""
+    valoracionPorGenero = analizar_por_categoria(dfGeneros, "genre", "vote_average")
+    #visualizacion de datos
+    print()
+    print("Valoración promedio por género:")
+    print(valoracionPorGenero)
+
+    """Que géneros presentan mayor popularidad"""
+    popularidadPorGenero = analizar_por_categoria(dfGeneros, "genre", "popularity")
+    #visualizacion de datos
+    print()
+    print("Popularidad promedio por género:")
+    print(popularidadPorGenero)
+
+    """Las peliculas mas populares son las mejor valoradas"""
+    coincidencias=comparar_popularidad_valoracion(dfPeliculas)
+    #visualizacion de datos
+    print()
+    print("Películas que aparecen en ambas listas:")
+    print(coincidencias)
+    print("Cantidad de coincidencias:", len(coincidencias))
+
+    """Que idiomas presentan mayor popularidad promedio"""
+    #lista de idiomas con su popularidad promedio y cantidad de peliculas por idioma
+    popularidadPorIdioma = analizar_por_categoria(dfPeliculas, "original_language", "popularity",100)
+    #visualizacion de datos
+    print()
+    print("Popularidad promedio por idioma con al menos 100 películas:")
+    print(popularidadPorIdioma)
+
+    """Que productoras presentan mayor popularidad promedio"""
+    dfProductoras = crear_df_productoras(dfPeliculas)
+    #calcula popularidad promedio por productora
+    popularidadPorProductora = analizar_por_categoria(dfProductoras, "production_company", "popularity",100)
+    #visualizacion de datos
+    print()
+    print("Popularidad promedio por productora con al menos 100 películas:")
+    print(popularidadPorProductora)
+
+    """Las películas con presupuestos más altos reciben mejores valoraciones"""
+    medianaPresupuesto, PresupuestoBajo, PresupuestoAlto, cantidadPresupuestoBajo, cantidadPresupuestoAlto = comparar_por_mediana(dfPeliculas,"budget","vote_average")
+    #visualizacion de datos
+    print()
+    print("Mediana del presupuesto:", medianaPresupuesto)
+    print("Valoración promedio presupuesto bajo:", PresupuestoBajo)
+    print("Valoración promedio presupuesto alto:", PresupuestoAlto)
+    print("Cantidad presupuesto bajo:", cantidadPresupuestoBajo)
+    print("Cantidad presupuesto alto:", cantidadPresupuestoAlto)
+
+    """Qué características tienen las películas que combinan alta popularidad y alta valoración"""
+    peliculasConBuenDesempeno, peliculasAltoDesempeno, medianaPopularidad, medianaValoracion = obtener_alto_desempeno(dfPeliculas)
+    #diferencia de presencia por genero entre peliculas con alto desempeño y todas las peliculas con popularidad y valoracion
+    diferenciaGeneros = comparar_categorias_lista(peliculasConBuenDesempeno,peliculasAltoDesempeno,"genres") 
+    #diccionario con idiomas de peliculas con alto desempeño y su cantidad
+    diferenciaIdiomas = comparar_categorias_simples(peliculasConBuenDesempeno, peliculasAltoDesempeno, "original_language", 100)
+    #diferencia de presencia por productora entre peliculas con alto desempeño y todas las peliculas con popularidad y valoracion
+    diferenciaProductoras = comparar_categorias_lista(peliculasConBuenDesempeno,peliculasAltoDesempeno,"production_companies",100)
+    # Visualización de datos
+    print()
+    print("Películas con alto desempeño:", len(peliculasAltoDesempeno))
+    print("Mediana de popularidad:", medianaPopularidad)
+    print("Mediana de valoración:", medianaValoracion)
+    # diferencia por genero
+    print()
+    print("Diferencia de presencia de géneros en películas de alto desempeño:")
+    mostrar_diferencias(diferenciaGeneros)
+    # diferencia por idioma
+    print()
+    print("Diferencia de presencia por idioma:")
+    mostrar_diferencias(diferenciaIdiomas)
+    # diferencia por productora
+    print()
+    print("Diferencia de presencia por productora:")
+    mostrar_diferencias(diferenciaProductoras)
+
+    """Qué combinaciones de género e idioma tienen una mayor proporción de películas de alto desempeño"""
+    # cantidad total de peliculas por combinacion
+    conteoCombinacionesTotales = contar_combinaciones_genero_idioma(peliculasConBuenDesempeno)
+    # cantidad de peliculas de alto desempeño por combinacion
+    conteoCombinacionesAltoDesempeno = contar_combinaciones_genero_idioma(peliculasAltoDesempeno)
+    # porcentaje de alto desempeño dentro de cada combinacion
+    porcentajeAltoDesempenoPorCombinacion = calcular_porcentaje_alto_desempeno(conteoCombinacionesTotales,conteoCombinacionesAltoDesempeno, 100)
+    #visualizacion de datos
+    print()
+    print("Top 50 combinaciones con mayor porcentaje de alto desempeño:")
+    top50Porcentaje = sorted(
+        porcentajeAltoDesempenoPorCombinacion.items(), #ordena el diccionario por valor
+        key=lambda x: x[1], #ordena por el valor del porcentaje
+        reverse=True)[:50] #toma las primeras 50
+    for combinacion, porcentaje in top50Porcentaje:
+        print(combinacion,":",porcentaje,"%","- Alto desempeño:",conteoCombinacionesAltoDesempeno[combinacion],"- Total:",conteoCombinacionesTotales[combinacion])
+
+    """Qué combinaciones de género e idioma aparecen con mayor frecuencia entre las películas de alto desempeño"""
+    #visualizacion de datos 
+    print()
+    print("Top 50 combinaciones más frecuentes entre películas de alto desempeño:")
+    top50Cantidad = sorted(
+        conteoCombinacionesAltoDesempeno.items(),
+        key=lambda x: x[1],
+        reverse=True)[:50]
+    for combinacion, cantidad in top50Cantidad:
+        print(combinacion, ":", cantidad)
+
+    """La duración de una película se relaciona con su valoración"""
+    medianaDuracion, valoracionDuracionCorta, valoracionDuracionLarga, cantidadDuracionCorta, cantidadDuracionLarga = comparar_por_mediana(dfPeliculas,"runtime","vote_average")
+    # visualizacion de datos
+    print()
+    print("Mediana de duración:", medianaDuracion)
+    print("Valoración promedio duración corta:", valoracionDuracionCorta)
+    print("Valoración promedio duración larga:", valoracionDuracionLarga)
+    print("Cantidad duración corta:", cantidadDuracionCorta)
+    print("Cantidad duración larga:", cantidadDuracionLarga)
+
+main()
